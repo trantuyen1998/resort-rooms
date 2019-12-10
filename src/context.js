@@ -1,8 +1,10 @@
 import React, { Component } from 'react'
-import items from './data';
+// import items from './data';
 
 import Client from './contentful';
 
+
+// 
 const RoomContext = React.createContext();
 // <RoomContext.Provider value = {'hello'} 
 
@@ -27,8 +29,22 @@ class RoomProvider extends Component {
     // getData{}
     getData = async() => {
         try {
-            let response = Client.getEntries({
-                content_type:"beachResortRoom"
+            let response = await Client.getEntries();
+            let rooms = this.formatData(response.items);
+            let featuredRooms = rooms.filter(room =>
+                room.featured === true);
+    
+            let maxPrice = Math.max(...rooms.map(item => item.price));
+            let maxSize = Math.max(...rooms.map(item => item.size));
+    
+            this.setState({
+                rooms,
+                featuredRooms,
+                sortedRooms: rooms,
+                loading: false,
+                price: maxPrice,
+                maxPrice,
+                maxSize
             })
         } catch (error) {
             console.log(error)
@@ -36,22 +52,7 @@ class RoomProvider extends Component {
     }
 
     componentDidMount() {
-        let rooms = this.formatData(items);
-        let featuredRooms = rooms.filter(room =>
-            room.featured === true);
-
-        let maxPrice = Math.max(...rooms.map(item => item.price));
-        let maxSize = Math.max(...rooms.map(item => item.size));
-
-        this.setState({
-            rooms,
-            featuredRooms,
-            sortedRooms: rooms,
-            loading: false,
-            price: maxPrice,
-            maxPrice,
-            maxSize
-        })
+       this.getData();
     }
 
     formatData(items) {
@@ -154,7 +155,13 @@ const RoomConsumer = RoomContext.Consumer;
 
 
 export function withRoomConsumer(Component) {
-
+    return function ConsumerWrapper(props) {
+        return (
+          <RoomConsumer>
+            {value => <Component {...props} context={value} />}
+          </RoomConsumer>
+        );
+      };
 }
 
 export { RoomProvider, RoomConsumer, RoomContext };
